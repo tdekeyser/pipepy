@@ -1,18 +1,10 @@
 import unittest
 
-from pipepy.core import Pipe, PipeLine
+from pipepy.core import PipeLine
+from pipepy.pipe import IdentityPipe, identity
 
 
-class IdentityPipe(Pipe):
-    def flush(self, data):
-        return data
-
-
-def identity(data):
-    return data
-
-
-def add(data):
+def add_testpipe(data):
     return list(map(lambda x: x + 1, data))
 
 
@@ -37,6 +29,12 @@ class PipeLineTest(unittest.TestCase):
         self.assertEqual(pipeline.flush(self.data), self.data)
 
     def test_flush_initial_value(self):
-        pipeline = PipeLine([identity, add])
+        pipeline = PipeLine([identity, add_testpipe])
 
         self.assertEqual(pipeline.flush(self.data), list(range(11))[1:])
+
+    def test_flush_dataIsNone_error(self):
+        pipeline = PipeLine([identity])
+
+        with self.assertRaises(AssertionError):
+            pipeline.flush(None)
