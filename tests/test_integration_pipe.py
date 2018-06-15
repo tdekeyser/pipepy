@@ -1,8 +1,9 @@
 """
 Tests that perform actual data cleaning on the datasets in the ``data/`` folder.
 """
-import pandas as pd
 import unittest
+
+import pandas as pd
 
 from pipepy.core import PipeLine
 from pipepy.pipe import strip
@@ -22,3 +23,11 @@ class PipeIntegrationTest(unittest.TestCase):
 
         print(self.data)
         ## TODO
+
+    def test_case_filter_female(self):
+        def filter_female(data):
+            return data.pipe(lambda x: x[x['Sex'] == 'female'])
+
+        pipeline = PipeLine([filter_female])
+
+        print(pipeline.flush(self.data))
