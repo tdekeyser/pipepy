@@ -1,5 +1,6 @@
 from abc import abstractmethod, ABC
 from functools import reduce
+from typing import Callable, TypeVar, Iterable
 
 
 class Pipe(ABC):
@@ -11,6 +12,9 @@ class Pipe(ABC):
     @abstractmethod
     def flush(self, data):
         pass
+
+
+Pipe_t = TypeVar('Pipe_t', Pipe, Callable)
 
 
 class PipeLine(object):
@@ -27,13 +31,13 @@ class PipeLine(object):
     the data.
     """
 
-    def __init__(self, pipes):
+    def __init__(self, pipes: Iterable[Pipe_t]):
         self.pipes = pipes
 
     def flush(self, data):
         return reduce(lambda result, pipe: self.__flush(result, pipe), self.pipes, data)
 
-    def __flush(self, data, pipe):
+    def __flush(self, data, pipe: Pipe_t):
         assert data is not None, "Cannot transform null"
 
         if isinstance(pipe, Pipe):

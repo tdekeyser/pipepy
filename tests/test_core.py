@@ -1,7 +1,7 @@
 import unittest
 
 from pipepy.core import PipeLine
-from pipepy.pipe import IdentityPipe, identity
+from pipepy.generic_pipe import IdentityPipe, identity
 
 
 def add_testpipe(data):
