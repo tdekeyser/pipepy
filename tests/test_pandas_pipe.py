@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from numpy.testing import assert_array_equal
 
-from pipepy.pandas_pipe import category_to_numeric, CategoryToNumericPipe
+from pipepy.pandas_pipe import category_to_numeric, CategoryToNumericPipe, DropColumnPipe
 
 
 class CategoryToNumericPipeTest(unittest.TestCase):
@@ -20,7 +20,23 @@ class CategoryToNumericPipeTest(unittest.TestCase):
 
         assert_array_equal(pipe.flush(df.copy()), np.asarray([[0, 1, 0, 3], [1, 5, 1, 7]]))
 
+    def test_category_to_numeric_pipe_colnames(self):
+        df = pd.DataFrame(np.asarray([[0, 1, 2, 3], [4, 5, 6, 7]]), columns=['one', 'two', 'three', 'four'])
+        pipe = CategoryToNumericPipe(['one', 'three'])
+
+        assert_array_equal(pipe.flush(df.copy()), np.asarray([[0, 1, 0, 3], [1, 5, 1, 7]]))
 
 
 class DropColumnPipeTest(unittest.TestCase):
-    pass  # TODO
+
+    def test_drop_columns(self):
+        df = pd.DataFrame(np.asarray([[0, 1, 2, 3], [4, 5, 6, 7]]))
+        pipe = DropColumnPipe([0, 2, 3])
+
+        assert_array_equal(pipe.flush(df.copy()), np.asarray([[1], [5]]))
+
+    def test_drop_columns_colnames(self):
+        df = pd.DataFrame(np.asarray([[0, 1, 2, 3], [4, 5, 6, 7]]), columns=['one', 'two', 'three', 'four'])
+        pipe = DropColumnPipe(['one', 'three'])
+
+        assert_array_equal(pipe.flush(df.copy()), np.asarray([[1, 3], [5, 7]]))

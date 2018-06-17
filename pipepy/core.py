@@ -38,7 +38,7 @@ class PipeLine(object):
         return reduce(lambda result, pipe: self.__flush(result, pipe), self.pipes, data)
 
     def __flush(self, data, pipe: Pipe_t):
-        assert data is not None, "Cannot transform null"
+        assert data is not None, 'Cannot transform null'
 
         if isinstance(pipe, Pipe):
             return pipe.flush(data)

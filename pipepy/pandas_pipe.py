@@ -1,7 +1,6 @@
 """
 These pipes assume a pandas DataFrame input and produce a DataFrame output.
 """
-
 import pandas as pd
 
 from pipepy.core import Pipe
@@ -23,13 +22,15 @@ class CategoryToNumericPipe(Pipe):
     """
     Transform specified columns of a dataset into bins. Does not create
     a duplicate.
+
+    :param cols: iterable of column names or indices
     """
 
-    def __init__(self, cols):
-        self.cols = cols
+    def __init__(self, columns):
+        self.columns = columns
 
     def flush(self, data: pd.DataFrame) -> pd.DataFrame:
-        for col in self.cols:
+        for col in self.columns:
             data[col] = category_to_numeric(data[col])
         return data
 
@@ -38,13 +39,13 @@ class DropColumnPipe(Pipe):
     """
     Drop columns from the DataFrame.
 
-    :param cols: iterable of column names
+    :param cols: iterable of column names or indices
     """
 
-    def __init__(self, cols):
-        self.cols = cols
+    def __init__(self, columns):
+        self.columns = columns
 
     def flush(self, data: pd.DataFrame) -> pd.DataFrame:
-        for col in self.cols:
+        for col in self.columns:
             data = data.drop(col, axis='columns')
         return data
