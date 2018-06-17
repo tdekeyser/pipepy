@@ -14,7 +14,20 @@ class Pipe(ABC):
         pass
 
 
-Pipe_t = TypeVar('Pipe_t', Pipe, Callable)
+class ResidueMixin(ABC):
+    """This ResidueMixin allows state to be captured and aggregated. The Mixin
+    can be used in conjunction with Pipe to keep track of lost data during a
+    flush.
+
+    For example usage, see `<pipepy.pandas_pipe.CategoryToNumericPipe>`, in which
+    ResidueMixin is used to hold the original categories of the transformed columns.
+    """
+
+    def __init__(self):
+        self.residue = []
+
+    def add_residue(self, residue):
+        self.residue.append(residue)
 
 
 class PipeLine(object):
@@ -30,6 +43,8 @@ class PipeLine(object):
     should only be used to collect pipes and call the ``flush`` function on
     the data.
     """
+
+    Pipe_t = TypeVar('Pipe_t', Pipe, Callable)
 
     def __init__(self, pipes: Iterable[Pipe_t]):
         self.pipes = pipes

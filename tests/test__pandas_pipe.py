@@ -10,9 +10,10 @@ from pipepy.pandas_pipe import category_to_numeric, CategoryToNumericPipe, DropC
 class CategoryToNumericPipeTest(unittest.TestCase):
 
     def test_category_to_numeric(self):
-        assert_array_equal(
-            category_to_numeric(pd.Categorical(['A', 'b', 'c', 'A'])),
-            pd.Categorical([0, 1, 2, 0]))
+        transformed_array, residue = category_to_numeric(pd.Categorical(['A', 'b', 'c', 'A']))
+
+        assert_array_equal(transformed_array,pd.Categorical([0, 1, 2, 0]))
+        self.assertEqual(residue, ['A', 'b', 'c'])
 
     def test_category_to_numeric_pipe(self):
         df = pd.DataFrame(np.asarray([[0, 1, 2, 3], [4, 5, 6, 7]]))
@@ -25,6 +26,14 @@ class CategoryToNumericPipeTest(unittest.TestCase):
         pipe = CategoryToNumericPipe(['one', 'three'])
 
         assert_array_equal(pipe.flush(df.copy()), np.asarray([[0, 1, 0, 3], [1, 5, 1, 7]]))
+
+    def test_category_to_numeric_pipe_residue(self):
+        df = pd.DataFrame(np.asarray([[0, 1, 2, 3], [4, 5, 6, 7]]))
+        pipe = CategoryToNumericPipe([0, 2])
+
+        pipe.flush(df.copy())
+
+        self.assertEqual(pipe.residue, [(0, [0, 4]), (2, [2, 6])])
 
 
 class DropColumnPipeTest(unittest.TestCase):

@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split
 from pipepy.core import PipeLine
 from pipepy.pandas_pipe import DropColumnPipe, CategoryToNumericPipe
 
+
 TITANIC = 'data/titanic_train.csv'
 
 
@@ -43,8 +44,13 @@ if __name__ == "__main__":
     print(data.columns)
 
     ## CLEANING + FEATURE ENGINEERING
-    data = build_pipeline().flush(data)
-    print(data)
+    pipeline = build_pipeline()
+    data = pipeline.flush(data)
+
+    print(pipeline.pipes)
+    print(pipeline.pipes[1].residue)
+
+    #print(data)
 
     ## TRAIN/TEST SPLIT
     x_train, x_test, y_train, y_test = split(data)
