@@ -7,7 +7,7 @@ import pandas as pd
 
 from pipepy.core import PipeLine
 
-TITANIC = 'data/titanic_train.csv'
+TITANIC = 'data/titanic/train.csv'
 
 
 class PipeIntegrationTest(unittest.TestCase):
