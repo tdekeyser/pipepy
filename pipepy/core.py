@@ -30,7 +30,7 @@ class ResidueMixin(ABC):
         self.residue.append(residue)
 
 
-class PipeLine(object):
+class Pipeline(object):
     """A pipeline is defined as an ordered list of Pipes or functions that
     consecutively calls each function on data in order to transform the input.
     We can use this concept to clean or restructure a dataset after a number

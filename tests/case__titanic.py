@@ -1,63 +1,99 @@
 """
 Using pipepy to create a classifier for the Titanic dataset.
 """
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.model_selection import train_test_split
+from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
+from sklearn.model_selection import cross_val_score
+from sklearn.preprocessing import Imputer, MinMaxScaler
 
-from pipepy.core import PipeLine
-from pipepy.pandas_pipe import DropColumnPipe, CategoryToNumericPipe
+from pipepy.core import Pipeline
+from pipepy.pandas_pipe import DropColumnPipe, CategoryToNumericPipe, MapColumnPipe, PeekPipe, AddColumnPipe
 
 
-TITANIC = 'data/titanic_train.csv'
+TITANIC = 'data/titanic/train.csv'
+
+
+def parse_titles(names):
+    titles = names.str.replace(r'^.+, (.+?[.]) .+$', lambda match: match.group(1))
+    titles = titles.apply(lambda t: 'Miss.' if t in ['Mrs.', 'Miss.', 'Mlle.', 'Mme', 'Ms.'] else t)
+    # titles = titles.apply(lambda t: 'Special' if t not in ['Miss.', 'Mr.'] else t)
+    return titles
+
+
+def impute_age(data):
+    data.Age = Imputer(missing_values='NaN', strategy='median', axis=0) \
+        .fit_transform(data.Age.values.reshape(-1, 1))
+    return data
 
 
 def build_pipeline():
-    return PipeLine([
+    return Pipeline([
+
+        AddColumnPipe([parse_titles(data.Name)], ['Title']),
+
+        CategoryToNumericPipe([
+            'Embarked',
+            'Sex',
+            'Pclass',
+            'Title',
+        ]),
+
+        PeekPipe(lambda data: print(data.isnull().sum())),
+
+        lambda data: impute_age(data),
+
         DropColumnPipe([
             'PassengerId',
             'Name',
             'Cabin',
-            'Ticket'
+            'Ticket',
         ]),
-        CategoryToNumericPipe([
-            'Embarked',
-            'Sex',
-            'Pclass'
-        ]),
-        lambda data: data.fillna(0)
+
+        lambda data: data.dropna(),
+
+        MapColumnPipe(lambda col: MinMaxScaler().fit_transform(col.values.reshape(-1, 1)))
     ])
 
 
-def split(dataset):
-    label_name = 'Survived'
-    train, test = train_test_split(dataset, test_size=0.3)
-    x_train, x_test = train.drop(label_name, 1), test.drop(label_name, 1)
-    y_train, y_test = train[label_name], test[label_name]
-    return x_train, x_test, y_train, y_test
+def plot_feature_importances(model, features):
+    feature_importance = model.feature_importances_
+    feature_importance = 100.0 * (feature_importance / feature_importance.max())
+    sorted_idx = np.argsort(feature_importance)
+    pos = np.arange(sorted_idx.shape[0]) + .5
+    plt.barh(pos, feature_importance[sorted_idx], align='center')
+    plt.yticks(pos, features.columns[sorted_idx])
+    plt.xlabel('Relative Importance')
+    plt.title('Variable Importance')
+    plt.show()
 
 
 if __name__ == "__main__":
-
     data = pd.read_csv(TITANIC, na_values="", keep_default_na=False)
-    print(data.columns)
 
     ## CLEANING + FEATURE ENGINEERING
     pipeline = build_pipeline()
     data = pipeline.flush(data)
+    print(data.head(1))
 
-    print(pipeline.pipes)
-    print(pipeline.pipes[1].residue)
+    age_data = Pipeline([DropColumnPipe(['Survived', 'Sex', 'Embarked', 'SibSp'])]).flush(data[data.Age.notnull()])
 
-    #print(data)
+    print(age_data.columns)
+    print(age_data.shape)
+    features, labels = age_data.drop('Age', axis='columns'), age_data['Age']
+    model = GradientBoostingRegressor(n_estimators=10, max_depth=3, random_state=np.random.RandomState(1))
+    scores = cross_val_score(model, features, labels, cv=3)
+    print(scores.mean())
+    age_model = model.fit(features, labels)
 
-    ## TRAIN/TEST SPLIT
-    x_train, x_test, y_train, y_test = split(data)
-    print("Split data: train ({0}, {1}) - test ({2}, {3})"
-          .format(x_train.shape, y_train.shape, x_test.shape, y_test.shape))
+    plot_feature_importances(age_model, features)
 
-    ## EVALUATE CLASSIFIER
-    model = GradientBoostingClassifier(n_estimators=10, max_depth=4, random_state=np.random.RandomState(1)) \
-        .fit(x_train, y_train)
-    print(model.score(x_test, y_test))
+    ## TRAIN AND EVALUATE CLASSIFIER
+    features, labels = data.drop('Survived', axis='columns'), data['Survived']
+    model = GradientBoostingClassifier(n_estimators=100, max_depth=3, random_state=np.random.RandomState(1))
+    scores = cross_val_score(model, features, labels, cv=3)
+    print(scores.mean())
+    titanic_model = model.fit(features, labels)
+
+    plot_feature_importances(titanic_model, features)

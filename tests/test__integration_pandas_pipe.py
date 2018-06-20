@@ -5,7 +5,7 @@ import unittest
 
 import pandas as pd
 
-from pipepy.core import PipeLine
+from pipepy.core import Pipeline
 
 TITANIC = 'data/titanic/train.csv'
 
@@ -19,6 +19,6 @@ class PipeIntegrationTest(unittest.TestCase):
         def filter_female(data):
             return data.pipe(lambda x: x[x['Sex'] == 'female'])
 
-        pipeline = PipeLine([filter_female])
+        pipeline = Pipeline([filter_female])
 
         print(pipeline.flush(self.data))

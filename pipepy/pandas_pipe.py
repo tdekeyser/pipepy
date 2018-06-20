@@ -106,9 +106,9 @@ class MapColumnPipe(Pipe):
         self.__columns = columns
 
     def flush(self, data: pd.DataFrame) -> pd.DataFrame:
-        columns = self.__columns if self.__columns else data.columns
+        columns = self.__columns if self.__columns is not None else data.columns
         for col in columns:
-            data[col] = data[col].map(self.__map_func)
+            data[col] = self.__map_func(data[col])
         return data
 
 
