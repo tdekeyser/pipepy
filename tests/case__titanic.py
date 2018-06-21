@@ -11,7 +11,6 @@ from sklearn.preprocessing import Imputer, MinMaxScaler
 from pipepy.core import Pipeline
 from pipepy.pandas_pipe import DropColumnPipe, CategoryToNumericPipe, MapColumnPipe, PeekPipe, AddColumnPipe
 
-
 TITANIC = 'data/titanic/train.csv'
 
 
@@ -22,38 +21,32 @@ def parse_titles(names):
     return titles
 
 
-def impute_age(data):
-    data.Age = Imputer(missing_values='NaN', strategy='median', axis=0) \
-        .fit_transform(data.Age.values.reshape(-1, 1))
-    return data
-
-
 def build_pipeline():
     return Pipeline([
 
+        # Feature engineer titles from names
         AddColumnPipe([parse_titles(data.Name)], ['Title']),
 
-        CategoryToNumericPipe([
-            'Embarked',
-            'Sex',
-            'Pclass',
-            'Title',
-        ]),
+        # Turn categorical variables into numeric
+        CategoryToNumericPipe(['Embarked', 'Sex', 'Pclass', 'Title']),
 
+        # Deal with missing data
         PeekPipe(lambda data: print(data.isnull().sum())),
+        MapColumnPipe(
+            lambda age: Imputer(missing_values='NaN',
+                                strategy='median',
+                                axis=0)
+                .fit_transform(age.values.reshape(-1, 1)),
+            columns=['Age']
+        ),
 
-        lambda data: impute_age(data),
-
-        DropColumnPipe([
-            'PassengerId',
-            'Name',
-            'Cabin',
-            'Ticket',
-        ]),
-
+        # Drop columns that do not affect the model
+        DropColumnPipe(['PassengerId', 'Name', 'Cabin', 'Ticket']),
         lambda data: data.dropna(),
 
-        MapColumnPipe(lambda col: MinMaxScaler().fit_transform(col.values.reshape(-1, 1)))
+        # Normalize
+        MapColumnPipe(lambda col: MinMaxScaler()
+                      .fit_transform(col.values.reshape(-1, 1)))
     ])
 
 
