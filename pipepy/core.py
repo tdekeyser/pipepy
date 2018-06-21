@@ -4,7 +4,8 @@ from typing import Callable, TypeVar, Iterable
 
 
 class Pipe(ABC):
-    """Basic interface for a pipe class. Choosing a class over a function
+    """
+    Basic interface for a pipe class. Choosing a class over a function
     allows more complex constructions such as holding state, adding
     multiple arguments, or even perform feature engineering.
     """
@@ -15,7 +16,8 @@ class Pipe(ABC):
 
 
 class ResidueMixin(ABC):
-    """This ResidueMixin allows state to be captured and aggregated. The Mixin
+    """
+    This ResidueMixin allows state to be captured and aggregated. The Mixin
     can be used in conjunction with Pipe to keep track of lost data during a
     flush.
 
@@ -31,7 +33,8 @@ class ResidueMixin(ABC):
 
 
 class Pipeline(object):
-    """A pipeline is defined as an ordered list of Pipes or functions that
+    """
+    A pipeline is defined as an ordered list of Pipes or functions that
     consecutively calls each function on data in order to transform the input.
     We can use this concept to clean or restructure a dataset after a number
     of cleaning steps.
@@ -39,9 +42,8 @@ class Pipeline(object):
     A pipe function is expected to have a single argument and a single output,
     i.e. the data and the transformed data.
 
-    In the initial design, this class was not designed to be subclassed. It
-    should only be used to collect pipes and call the ``flush`` function on
-    the data.
+    This class is not intended to be subclassed. It should only be used to
+    collect pipes and call the ``flush`` function on the data.
     """
 
     Pipe_t = TypeVar('Pipe_t', Pipe, Callable)
