@@ -35,8 +35,7 @@ def build_pipeline():
         MapColumnPipe(
             lambda age: Imputer(missing_values='NaN',
                                 strategy='median',
-                                axis=0)
-                .fit_transform(age.values.reshape(-1, 1)),
+                                axis=0).fit_transform(age.values.reshape(-1, 1)),
             columns=['Age']
         ),
 
@@ -45,8 +44,7 @@ def build_pipeline():
         lambda data: data.dropna(),
 
         # Normalize
-        MapColumnPipe(lambda col: MinMaxScaler()
-                      .fit_transform(col.values.reshape(-1, 1)))
+        MapColumnPipe(lambda col: MinMaxScaler().fit_transform(col.values.reshape(-1, 1)))
     ])
 
 
@@ -85,8 +83,9 @@ if __name__ == "__main__":
     ## TRAIN AND EVALUATE CLASSIFIER
     features, labels = data.drop('Survived', axis='columns'), data['Survived']
     model = GradientBoostingClassifier(n_estimators=100, max_depth=3, random_state=np.random.RandomState(1))
-    scores = cross_val_score(model, features, labels, cv=3)
-    print(scores.mean())
+
+    scores = cross_val_score(model, features, labels, cv=10)
     titanic_model = model.fit(features, labels)
 
+    print(scores.mean())
     plot_feature_importances(titanic_model, features)

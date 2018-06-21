@@ -96,7 +96,7 @@ class MapColumnPipe(Pipe):
     the function will be applied on all columns.
 
     :param func: Function to be applied
-    :param columns: Column names or indices to apply func
+    :param columns: Column names or indices to apply func; None means 'all columns'
     """
 
     def __init__(self, map_func: Callable, columns: List = None):
