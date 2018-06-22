@@ -49,7 +49,28 @@ class CategoryToNumericPipe(ResidueMixin, Pipe):
         return data
 
 
-class DropColumnPipe(Pipe):
+class VariableToBinPipe(ResidueMixin, Pipe):
+    """
+    Transform a continuous variable into discrete intervals (bins).
+    If columns is None, all columns are transformed.
+    """
+
+    def __init__(self, bins=3, columns=None):
+        assert bins > 0, 'Cannot transform nr of bins: %i' % bins
+
+        super().__init__()
+        self.__bins = bins
+        self.__columns = columns
+
+    def flush(self, data: pd.DataFrame) -> pd.DataFrame:
+        columns = self.__columns if self.__columns is not None else data.columns
+        for col in columns:
+            data[col], categories = pd.cut(data[col], bins=self.__bins, labels=False, retbins=True)
+            self.add_residue(categories)
+        return data
+
+
+class DropColumnPipe(ResidueMixin, Pipe):
     """
     Drop columns from the DataFrame.
 
@@ -57,36 +78,35 @@ class DropColumnPipe(Pipe):
     """
 
     def __init__(self, columns):
+        super().__init__()
         self.__columns = columns
 
     def flush(self, data: pd.DataFrame) -> pd.DataFrame:
         for col in self.__columns:
+            self.add_residue(data[col])
             data = data.drop(col, axis='columns')
         return data
 
 
 class AddColumnPipe(Pipe):
     """
-    Add columns to data.
+    Perform feature engineering to add a column to data.
 
-    :param cols: Columns to add
-    :param names: Respective names for the new columns
+    :param engineer_funcs: Callable to engineer a new column
+    :param names: Name for the new column
     """
 
-    def __init__(self, columns, names):
-        assert len(columns) == len(names), \
-            'Length of columns must be the same as the column names: %i - %i' % (len(columns), len(names))
-
-        self.__columns = columns
-        self.__names = names
+    def __init__(self, engineer_func: Callable[[pd.DataFrame], pd.Series], name: str):
+        self.__engineer_func = engineer_func
+        self.__name = name
 
     def flush(self, data: pd.DataFrame) -> pd.DataFrame:
-        num_rows = data.shape[0]
+        column = self.__engineer_func(data)
 
-        for i, col in enumerate(self.__columns):
-            assert num_rows == col.shape[0]
-            data[self.__names[i]] = col
+        assert data.shape[0] == column.shape[0], \
+            'Engineered column should have same number of rows as input data %i - %i' % (column.shape[0], data.shape[0])
 
+        data[self.__name] = column
         return data
 
 

@@ -1,91 +1,133 @@
 """
 Using pipepy to create a classifier for the Titanic dataset.
+
+Two extra features are engineered: titles and a family count. In order
+to deal with missing data, median values are imputed. Next, the Age feature
+was grouped into 3 categories.
+The pipeline eventually gets the following features to be used in the model:
+Pclass  Sex  Age  Fare  Embarked  Title  FamilyCount
+
+A stacked ensemble method was used to train the data. A set of base learners
+was used in a cross-validation training to predict on training set. Cross-validation
+is necessary to avoid the learners to predict based on the target class. The
+predictions of all learners were added as features to the training set, and
+a final model was trained to capture the full dataset.
+
+Best accuracy as of June 2018 on the Kaggle test set is 81.339%.
+
+:author: Tom De Keyser
 """
-import matplotlib.pyplot as plt
-import numpy as np
+from typing import Sequence, TypeVar
+
 import pandas as pd
-from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
-from sklearn.model_selection import cross_val_score
+from sklearn.ensemble import GradientBoostingClassifier, ExtraTreesClassifier, \
+    RandomForestClassifier
+from sklearn.model_selection import cross_val_score, cross_val_predict
 from sklearn.preprocessing import Imputer, MinMaxScaler
+from sklearn.svm import SVC
 
 from pipepy.core import Pipeline
-from pipepy.pandas_pipe import DropColumnPipe, CategoryToNumericPipe, MapColumnPipe, PeekPipe, AddColumnPipe
+from pipepy.pandas_pipe import DropColumnPipe, CategoryToNumericPipe, MapColumnPipe, AddColumnPipe, \
+    VariableToBinPipe
 
-TITANIC = 'data/titanic/train.csv'
+Learner_t = TypeVar('Learner_t')
+
+TITANIC_TRAIN = 'data/titanic/train.csv'
+TITANIC_TEST = 'data/titanic/test.csv'
 
 
 def parse_titles(names):
     titles = names.str.replace(r'^.+, (.+?[.]) .+$', lambda match: match.group(1))
-    titles = titles.apply(lambda t: 'Miss.' if t in ['Mrs.', 'Miss.', 'Mlle.', 'Mme', 'Ms.'] else t)
-    # titles = titles.apply(lambda t: 'Special' if t not in ['Miss.', 'Mr.'] else t)
+    titles = titles.apply(lambda t: 'Miss.' if t in ['Mrs.', 'Miss.', 'Mme.', 'Ms.'] else t)
+    titles = titles.apply(lambda t: 'Special' if t not in ['Miss.', 'Mr.', 'Master.', 'Rev.', 'Dr.'] else t)
     return titles
 
 
-def build_pipeline():
+def cleaning_and_feature_pipeline():
     return Pipeline([
-
-        # Feature engineer titles from names
-        AddColumnPipe([parse_titles(data.Name)], ['Title']),
-
-        # Turn categorical variables into numeric
-        CategoryToNumericPipe(['Embarked', 'Sex', 'Pclass', 'Title']),
-
-        # Deal with missing data
-        PeekPipe(lambda data: print(data.isnull().sum())),
-        MapColumnPipe(
-            lambda age: Imputer(missing_values='NaN',
-                                strategy='median',
-                                axis=0).fit_transform(age.values.reshape(-1, 1)),
-            columns=['Age']
-        ),
+        # Feature engineer new columns
+        AddColumnPipe(lambda data: parse_titles(data.Name), 'Title'),
+        AddColumnPipe(lambda data: data.Parch + data.SibSp, 'FamilyCount'),
 
         # Drop columns that do not affect the model
-        DropColumnPipe(['PassengerId', 'Name', 'Cabin', 'Ticket']),
-        lambda data: data.dropna(),
+        DropColumnPipe(['PassengerId', 'Name', 'Cabin', 'Parch', 'SibSp', 'Ticket']),
+
+        # Turn categorical variables into numeric
+        CategoryToNumericPipe(['Title', 'Sex', 'Embarked']),
+
+        # Deal with missing data
+        MapColumnPipe(
+            lambda col: Imputer(missing_values='NaN',
+                                strategy='median',
+                                axis=0).fit_transform(col.values.reshape(-1, 1)),
+            columns=['Age', 'Fare', 'Embarked']),
+
+        # Group Age into 3 categories
+        VariableToBinPipe(bins=3, columns=['Age']),
 
         # Normalize
         MapColumnPipe(lambda col: MinMaxScaler().fit_transform(col.values.reshape(-1, 1)))
     ])
 
 
-def plot_feature_importances(model, features):
-    feature_importance = model.feature_importances_
-    feature_importance = 100.0 * (feature_importance / feature_importance.max())
-    sorted_idx = np.argsort(feature_importance)
-    pos = np.arange(sorted_idx.shape[0]) + .5
-    plt.barh(pos, feature_importance[sorted_idx], align='center')
-    plt.yticks(pos, features.columns[sorted_idx])
-    plt.xlabel('Relative Importance')
-    plt.title('Variable Importance')
-    plt.show()
+def stacked_ensemble_train(X, y,
+                           base_learners: Sequence[Learner_t] = None,
+                           top_learner: Learner_t = None,
+                           cross_val=6) -> (Sequence[Learner_t], Learner_t):
+    base_predictions = [cross_val_predict(learner, X, y, cv=cross_val) for learner in base_learners]
+    base_learners = [learner.fit(X, y) for learner in base_learners]
+
+    for i, prediction in enumerate(base_predictions):
+        X['base' + str(i)] = prediction
+
+    print('Cross-validation accuracy of top learner: %f' % cross_val_score(top_learner, X, y, cv=10).mean())
+
+    return base_learners, top_learner.fit(X, y)
+
+
+def stacked_ensemble_predict(X,
+                             base_learners: Sequence[Learner_t] = None,
+                             top_learner: Learner_t = None) -> Sequence[float]:
+    base_predictions = [learner.predict(X) for learner in base_learners]
+
+    for i, prediction in enumerate(base_predictions):
+        X['base' + str(i)] = prediction
+
+    return top_learner.predict(X)
 
 
 if __name__ == "__main__":
-    data = pd.read_csv(TITANIC, na_values="", keep_default_na=False)
+    data = pd.read_csv(TITANIC_TRAIN, na_values="", keep_default_na=False)
+    test_data = pd.read_csv(TITANIC_TEST, na_values="", keep_default_na=False)
 
-    ## CLEANING + FEATURE ENGINEERING
-    pipeline = build_pipeline()
+    # CLEANING + FEATURE ENGINEERING
+
+    pipeline = cleaning_and_feature_pipeline()
     data = pipeline.flush(data)
     print(data.head(1))
 
-    age_data = Pipeline([DropColumnPipe(['Survived', 'Sex', 'Embarked', 'SibSp'])]).flush(data[data.Age.notnull()])
+    # EVALUATE CLASSIFIER -- STACKED ENSEMBLE
 
-    print(age_data.columns)
-    print(age_data.shape)
-    features, labels = age_data.drop('Age', axis='columns'), age_data['Age']
-    model = GradientBoostingRegressor(n_estimators=10, max_depth=3, random_state=np.random.RandomState(1))
-    scores = cross_val_score(model, features, labels, cv=3)
-    print(scores.mean())
-    age_model = model.fit(features, labels)
+    data = data.sample(frac=1)  # shuffle data
+    X, y = data.drop('Survived', axis='columns'), data['Survived']
 
-    plot_feature_importances(age_model, features)
+    base_learners, top_learner = stacked_ensemble_train(
+        X, y, cross_val=6,
+        base_learners=[
+            RandomForestClassifier(n_estimators=10, max_depth=5, min_samples_leaf=4, random_state=2345),
+            SVC(kernel='linear', C=0.5),
+            ExtraTreesClassifier(n_estimators=20, max_depth=3, min_samples_leaf=4, random_state=678)
+        ],
+        top_learner=GradientBoostingClassifier(n_estimators=40, max_depth=3, min_samples_leaf=4, random_state=123)
+    )
 
-    ## TRAIN AND EVALUATE CLASSIFIER
-    features, labels = data.drop('Survived', axis='columns'), data['Survived']
-    model = GradientBoostingClassifier(n_estimators=100, max_depth=3, random_state=np.random.RandomState(1))
+    # MAKE PREDICTIONS AND EXPORT
 
-    scores = cross_val_score(model, features, labels, cv=10)
-    titanic_model = model.fit(features, labels)
+    test_data = pipeline.flush(test_data)
 
-    print(scores.mean())
-    plot_feature_importances(titanic_model, features)
+    test_predictions = stacked_ensemble_predict(test_data,
+                                                base_learners=base_learners,
+                                                top_learner=top_learner)
+
+    submission = pd.DataFrame({'PassengerId': pipeline.pipes[2].residue[6], 'Survived': test_predictions.astype(int)})
+    submission.to_csv('data/titanic/submission2.csv', index=False)

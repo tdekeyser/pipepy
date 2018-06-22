@@ -85,34 +85,15 @@ class AddColumnPipeTest(unittest.TestCase):
             [0, 1, 2, 3],
             [4, 5, 6, 7]
         ]))
-        pipe = AddColumnPipe([np.asarray([
-            [10],
-            [11]
-        ]), np.asarray([
-            [100],
-            [101]]
-        )], ['one', 'two'])
+        pipe = AddColumnPipe(lambda data: data.iloc[:, 0] + 10, 'one')
 
         result = pipe.flush(df)
 
         self.assertIn('one', result.columns)
-        self.assertIn('two', result.columns)
         assert_array_equal(result, np.asarray([
-            [0, 1, 2, 3, 10, 100],
-            [4, 5, 6, 7, 11, 101]
+            [0, 1, 2, 3, 10],
+            [4, 5, 6, 7, 14]
         ]))
-
-    def test_add_column_rows_not_equal_throws(self):
-        df = pd.DataFrame(np.asarray([
-            [0, 1, 2, 3],
-            [4, 5, 6, 7]
-        ]))
-        pipe = AddColumnPipe([np.asarray([
-            [10],
-        ])], ['mistake'])
-
-        with self.assertRaises(AssertionError):
-            pipe.flush(df)
 
 
 class ApplyOnAxisPipeTest(unittest.TestCase):
@@ -128,3 +109,7 @@ class ApplyOnAxisPipeTest(unittest.TestCase):
             [1, 1, 2, 4],
             [5, 5, 6, 8]
         ]))
+
+
+class VariableToBinPipeTest(unittest.TestCase):
+    pass # TODO
