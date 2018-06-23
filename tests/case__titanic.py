@@ -7,11 +7,11 @@ was grouped into 3 categories.
 The pipeline eventually gets the following features to be used in the model:
 Pclass  Sex  Age  Fare  Embarked  Title  FamilyCount
 
-A stacked ensemble method was used to train the data. A set of base learners
-was used in a cross-validation training to predict on training set. Cross-validation
-is necessary to avoid the learners to predict based on the target class. The
-predictions of all learners were added as features to the training set, and
-a final model was trained to capture the full dataset.
+Modelling method: stacked ensemble
+- train a set of base learners
+- predict the training set using cross-validation to avoid fitting the target
+- add the base learner predictions as features
+- train a top learner on the new dataset
 
 Best accuracy as of June 2018 on the Kaggle test set is 81.339%.
 
