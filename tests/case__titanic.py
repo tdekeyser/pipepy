@@ -26,9 +26,9 @@ from sklearn.model_selection import cross_val_score, cross_val_predict
 from sklearn.preprocessing import Imputer, MinMaxScaler
 from sklearn.svm import SVC
 
+from pipepy.clean import DropColumnPipe, CategoryToNumericPipe, VariableToBinPipe
 from pipepy.core import Pipeline
-from pipepy.pandas_pipe import DropColumnPipe, CategoryToNumericPipe, MapColumnPipe, AddColumnPipe, \
-    VariableToBinPipe
+from pipepy.engineer import AddColumnPipe, MapColumnPipe
 
 Learner_t = TypeVar('Learner_t')
 
