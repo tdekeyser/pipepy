@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Sequence, Callable
 
 import pandas as pd
 
@@ -104,6 +104,10 @@ class VariableToBinPipe(ResidueMixin, Pipe):
         return data
 
 
+def is_three_std_from_mean(series):
+    return (series - series.mean()).abs() > 3 * series.std()
+
+
 class RemoveOutliersPipe(ResidueMixin, Pipe):
     """
     Remove rows that contain outliers, i.e. values greater than 3*std.
@@ -114,14 +118,17 @@ class RemoveOutliersPipe(ResidueMixin, Pipe):
     all columns will be transformed.
     """
 
-    def __init__(self, columns: Sequence = None):
+    def __init__(self, columns: Sequence = None, outlier_metric: Callable = is_three_std_from_mean):
+        assert outlier_metric is not None, 'Outlier metric cannot be None'
+
         super().__init__()
         self.__columns = columns
+        self.__is_outlier = outlier_metric
 
     def flush(self, data: pd.DataFrame) -> pd.DataFrame:
         columns = self.__columns if self.__columns is not None else data.columns
         for col in columns:
-            outlier_index = data[(data[col] - data[col].mean()).abs() > 3 * data[col].std()]
+            outlier_index = data[self.__is_outlier(data[col])]
             self.add_residue(outlier_index)
             data = data.drop(outlier_index.index)
         return data
