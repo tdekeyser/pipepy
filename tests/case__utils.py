@@ -29,3 +29,26 @@ def plot_decision_tree_feature_importances(model, features):
 #     age_model = model.fit(features, labels)
 #
 #     #plot_feature_importances(age_model, features)
+
+
+# from keras.models import Sequential
+# from keras.layers import Dense, Dropout
+#
+# model = Sequential()
+# model.add(Dense(X.shape[1], input_shape=(X.shape[1],), kernel_initializer='normal', activation='relu'))
+# model.add(Dense(256, activation='relu'))
+# model.add(Dense(1, activation='relu'))
+#
+# model.compile(loss='mean_squared_logarithmic_error', optimizer='rmsprop', metrics=['mean_squared_logarithmic_error'])
+#
+# history = model.fit(X, y, epochs=250, batch_size=75, verbose=1, validation_split=0.3)
+#
+# plt.plot(history.history['mean_squared_logarithmic_error'])
+# plt.plot(history.history['val_mean_squared_logarithmic_error'])
+# plt.title('mean_squared_logarithmic_error')
+# plt.ylabel('error')
+# plt.xlabel('epoch')
+# plt.ylim(ymax=0.2, ymin=0)
+# plt.xlim(xmin=20)
+# plt.legend(['train', 'test'], loc='upper left')
+# plt.show()
