@@ -112,7 +112,7 @@ class RemoveOutliersPipe(ResidueMixin, Pipe):
     """
     Remove rows that contain outliers, i.e. values greater than 3*std.
 
-    `.residue` field contains indices of removed rows.
+    `.residue` field contains indices of removed row indices.
 
     :param columns: iterable of column names or indices. If cols is None,
     all columns will be transformed.
@@ -129,6 +129,9 @@ class RemoveOutliersPipe(ResidueMixin, Pipe):
         columns = self.__columns if self.__columns is not None else data.columns
         for col in columns:
             outlier_index = data[self.__is_outlier(data[col])]
-            self.add_residue(outlier_index)
+            self.add_residue(outlier_index.index)
             data = data.drop(outlier_index.index)
         return data
+
+    def add_residue(self, residue):
+        self.residue = residue.union(self.residue)

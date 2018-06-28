@@ -113,7 +113,7 @@ class RemoveOutliersPipeTest(unittest.TestCase):
 
         self.assertEqual(result.shape, (99, 3))
         assert_array_equal(result.sum(), np.asarray([0, 0, 0]))
-        assert_array_equal(pipe.residue[0], np.asarray([[10000, 0, 0]]))
+        assert_array_equal(pipe.residue[0], np.asarray([10]))
 
 
 class VariableToBinPipeTest(unittest.TestCase):
