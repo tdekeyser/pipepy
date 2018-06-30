@@ -45,5 +45,5 @@ class MapColumnPipe(Pipe):
     def flush(self, data: pd.DataFrame) -> pd.DataFrame:
         columns = self.__columns if self.__columns is not None else data.columns
         for col in columns:
-            data[col] = self.__map_func(data[col])
+            data[col] = data[col].apply(self.__map_func)
         return data

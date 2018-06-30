@@ -48,14 +48,16 @@ class Pipeline(object):
 
     Pipe_t = TypeVar('Pipe_t', Pipe, Callable)
 
-    def __init__(self, pipes: Iterable[Pipe_t]):
+    def __init__(self, pipes: Iterable[Pipe_t], verbose=False):
         self.pipes = pipes
+        self.__verbose = verbose
 
     def flush(self, data):
         return reduce(lambda result, pipe: self.__flush(result, pipe), self.pipes, data)
 
     def __flush(self, data, pipe: Pipe_t):
         assert data is not None, 'Cannot transform null'
+        self.__print_stage(pipe)
 
         if isinstance(pipe, Pipe):
             return pipe.flush(data)
@@ -64,3 +66,7 @@ class Pipeline(object):
             return pipe(data)
 
         raise RuntimeError('pipe needs to be callable: ' + pipe)
+
+    def __print_stage(self, stage):
+        if self.__verbose:
+            print('Pipe - ' + str(stage) + '\n')
