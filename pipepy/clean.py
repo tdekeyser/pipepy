@@ -5,7 +5,7 @@ import pandas as pd
 from pipepy.core import ResidueMixin, Pipe
 
 
-class DropColumnPipe(ResidueMixin, Pipe):
+class DropColumnPipe(Pipe):
     """
     Drop columns from the DataFrame.
 
@@ -14,15 +14,11 @@ class DropColumnPipe(ResidueMixin, Pipe):
     """
 
     def __init__(self, columns: Sequence, keep=False):
-        super().__init__()
         self.__columns = columns
         self.__keep = keep
 
     def flush(self, data: pd.DataFrame) -> pd.DataFrame:
-        for col in self.__filter_columns(data.columns):
-            self.add_residue(data[col])
-            data = data.drop(col, axis='columns')
-        return data
+        return data.drop(columns=self.__filter_columns(data.columns))
 
     def __filter_columns(self, data_cols):
         if self.__keep:

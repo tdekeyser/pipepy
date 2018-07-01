@@ -1,5 +1,6 @@
 import unittest
 
+import time
 import numpy as np
 import pandas as pd
 from numpy.testing import assert_array_equal
@@ -32,9 +33,20 @@ class MapColumnPipeTest(unittest.TestCase):
             [0, 1, 2, 3],
             [4, 5, 6, 7]
         ]), columns=['one', 'two', 'three', 'four'])
-        pipe = MapColumnPipe(lambda col: col + 1, columns=['one', 'four'])
+        pipe = MapColumnPipe(lambda col: col + col.mean(), columns=['one', 'four'])
 
         assert_array_equal(pipe.flush(df), np.asarray([
-            [1, 1, 2, 4],
-            [5, 5, 6, 8]
+            [2, 1, 2, 8],
+            [6, 5, 6, 12]
         ]))
+
+    def test_performance(self):
+        df = pd.DataFrame(np.random.randn(5000, 5000))
+        pipe = MapColumnPipe(lambda col: 0 + col.mean())
+
+        start = time.time()
+        df = pipe.flush(df)
+        end = time.time()
+
+        self.assertLess(end - start, 2)
+        self.assertEqual(len(pd.unique(df.values.ravel())), 5000)

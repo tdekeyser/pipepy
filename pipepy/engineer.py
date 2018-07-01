@@ -9,7 +9,7 @@ class AddColumnPipe(Pipe):
     """
     Perform feature engineering to add a column to data.
 
-    :param engineer_funcs: Callable to engineer a new column
+    :param engineer_func: Callable to engineer a new column
     :param names: Name for the new column
     """
 
@@ -44,6 +44,9 @@ class MapColumnPipe(Pipe):
 
     def flush(self, data: pd.DataFrame) -> pd.DataFrame:
         columns = self.__columns if self.__columns is not None else data.columns
-        for col in columns:
-            data[col] = data[col].apply(self.__map_func)
+
+        data[columns] = data \
+            .filter(items=columns) \
+            .agg(self.__map_func)
+
         return data
