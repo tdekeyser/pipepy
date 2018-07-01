@@ -1,3 +1,4 @@
+import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
 from pipepy.core import Pipeline
@@ -7,9 +8,13 @@ TRANSACTIONS_TRAIN = 'data/transactions-value/train.csv'
 TRANSACTIONS_TEST = 'data/transactions-value/test.csv'
 
 
+def normalize(column):
+    return MinMaxScaler().fit_transform(column.values.reshape(-1, 1)).reshape(-1,)
+
+
 def fe_pipeline():
     return Pipeline([
-        MapColumnPipe(lambda col: MinMaxScaler().fit_transform(col)),
+        MapColumnPipe(normalize),
         #lambda data: umap.UMAP(n_components=2, metric='correlation', verbose=1).fit_transform(data),
     ])
 
@@ -39,6 +44,7 @@ if __name__ == '__main__':
 
     pipeline = fe_pipeline()
     X = fe_pipeline().flush(X)
+    print('normalized')
 
     y = pd.read_csv(TRANSACTIONS_TRAIN)['target']
     y = MinMaxScaler().fit_transform(y.values.reshape(-1, 1))  # normalize output to avoid Inf
